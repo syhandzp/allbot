@@ -392,7 +392,7 @@ class AccountQLPlugin {
     const isScheduled = ctx.meta('fake') === 'true';
     const waitScheduled = this.ql.waitScheduled ?? this.ql.wait_scheduled;
     const wait = isScheduled ? waitScheduled === true : true;
-    if (wait) await ctx.reply(`🚀开始执行${title}，共 ${accounts.length} 个账号。`);
+    if (wait && !isScheduled) await ctx.reply(`🚀开始执行${title}，共 ${accounts.length} 个账号。`);
     const startedAt = Date.now();
     const runtimeConfig = this.ql.runtimeConfig || this.ql.runtime_config || 'script_runtime';
     const scriptConfig = this.ql.scriptConfig || this.ql.script_config || 'task_script';
@@ -409,11 +409,18 @@ class AccountQLPlugin {
     if (!wait) return ctx.reply(scriptTaskMessage(result, `${title}任务已提交`));
     if (result?.already_running && result?.status === 'running') return ctx.reply(scriptTaskMessage(result, `${title}任务正在运行`));
     if (result?.timeout) return ctx.reply(scriptTaskMessage(result, `${title}仍在运行`));
+    if (result?.status !== 'success') {
+      if (!isScheduled || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
+      return;
+    }
     if (runMode === 'all_authorized') await this.callAfterRun(ctx, accounts, result, runMode, title, isScheduled);
-    if (result?.status === 'success') await this.checkCkAfterRun(ctx, accounts);
+    await this.checkCkAfterRun(ctx, accounts);
     if (runMode !== 'all_authorized' && typeof this.account.query === 'function') return this.replyAccountQueries(ctx, accounts, '运行后账号信息：', { separate: true });
-    if (runMode === 'all_authorized') return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
-    return ctx.reply(`${result?.status === 'success' ? '✅执行完成' : '❌执行失败'}：${title}`);
+    if (runMode === 'all_authorized') {
+      if (!isScheduled || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
+    } else {
+      return ctx.reply(`✅执行完成：${title}`);
+    }
   }
 
   runSummaryMessage(result, accountCount, elapsedMs) {
