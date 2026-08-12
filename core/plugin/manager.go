@@ -705,7 +705,8 @@ func (m *Manager) ExecutePlugin(plugin *types.Plugin, pluginPath string, message
 		switch action.Action {
 		case "reply":
 			if replyFunc != nil && action.Text != "" {
-				_ = replyFunc(action.Text)
+				text := action.Text
+				go func() { _ = replyFunc(text) }()
 			}
 		case "send_markdown":
 			if replyMarkdownFunc != nil {
@@ -717,14 +718,14 @@ func (m *Manager) ExecutePlugin(plugin *types.Plugin, pluginPath string, message
 					markdown = action.Text
 				}
 				if markdown != "" {
-					_ = replyMarkdownFunc(markdown)
+					go func() { _ = replyMarkdownFunc(markdown) }()
 				}
 			}
 		case "send_rich":
 			if replyRichFunc != nil {
 				message := types.RichMessage{Parts: action.Parts, FallbackText: action.FallbackText, Prefer: action.Prefer}
 				if len(message.Parts) > 0 || message.FallbackText != "" {
-					_ = replyRichFunc(message)
+					go func() { _ = replyRichFunc(message) }()
 				}
 			}
 		case "send_buttons":
@@ -737,20 +738,26 @@ func (m *Manager) ExecutePlugin(plugin *types.Plugin, pluginPath string, message
 					text = action.Markdown
 				}
 				if text != "" {
-					_ = sendButtonsFunc(text, action.Buttons)
+					go func() { _ = sendButtonsFunc(text, action.Buttons) }()
 				}
 			}
 		case "send_image":
 			if imageFunc != nil && action.URL != "" {
-				if err := imageFunc(action.URL); err != nil {
-					log.Printf("[SYSTEM] Plugin %s send image failed: %v", plugin.ID, err)
-				}
+				url := action.URL
+				go func() {
+					if err := imageFunc(url); err != nil {
+						log.Printf("[SYSTEM] Plugin %s send image failed: %v", plugin.ID, err)
+					}
+				}()
 			}
 		case "send_file":
 			if fileFunc != nil && action.Path != "" {
-				if err := fileFunc(action.Path); err != nil {
-					log.Printf("[SYSTEM] Plugin %s send file failed: %v", plugin.ID, err)
-				}
+				path := action.Path
+				go func() {
+					if err := fileFunc(path); err != nil {
+						log.Printf("[SYSTEM] Plugin %s send file failed: %v", plugin.ID, err)
+					}
+				}()
 			}
 		case "listen":
 			timeout := action.Timeout
