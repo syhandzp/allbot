@@ -229,7 +229,11 @@ class AccountQLPlugin:
         price = max(0, parse_int(ctx.config(provider.get("price_config", "auth_price_per_month"), 0), 0))
         unit = ctx.points_unit or "积分"
         await self.send_buttons(ctx, f"请输入授权月数（必须大于 0）{'（' + str(price) + unit + '/月）' if price > 0 else '（免费）'}：", [[self.user_button(ctx, "1个月", "1"), self.user_button(ctx, "3个月", "3"), self.user_button(ctx, "12个月", "12")], [self.user_button(ctx, "取消", "q")]])
-        months = parse_int((await ctx.listen(60)).strip(), 0)
+        raw = (await ctx.listen(60)).strip().lower()
+        if raw == "q":
+            await ctx.reply("已取消授权")
+            return
+        months = parse_int(raw, 0)
         if months <= 0:
             await ctx.reply("❌授权月数必须大于 0")
             return
@@ -410,7 +414,7 @@ class AccountQLPlugin:
         else:
             wait_scheduled = self.ql.get("waitScheduled")
         wait = wait_scheduled is True if is_scheduled else True
-        if wait:
+        if wait and not is_scheduled:
             await ctx.reply(f"🚀开始执行{title}，共 {len(accounts)} 个账号。")
         started_at = datetime.datetime.now(datetime.timezone.utc)
         timeout_config = self.ql.get("timeout_config") or self.ql.get("timeoutConfig") or "run_wait_timeout"
@@ -431,7 +435,8 @@ class AccountQLPlugin:
             return
         if result.get("status") != "success":
             elapsed_ms = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds() * 1000
-            await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
+            if not is_scheduled or ctx.config("notify_scheduled") == "true":
+                await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
             return
         if run_mode == "all_authorized":
             await self.call_after_run(ctx, accounts, result, run_mode, title, is_scheduled)
@@ -440,7 +445,8 @@ class AccountQLPlugin:
             await self.reply_queries(ctx, accounts, separate=True)
         elif run_mode == "all_authorized":
             elapsed_ms = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds() * 1000
-            await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
+            if not is_scheduled or ctx.config("notify_scheduled") == "true":
+                await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
         else:
             await ctx.reply(f"✅执行完成：{title}")
 
