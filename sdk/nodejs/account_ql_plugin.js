@@ -410,14 +410,14 @@ class AccountQLPlugin {
     if (result?.already_running && result?.status === 'running') return ctx.reply(scriptTaskMessage(result, `${title}任务正在运行`));
     if (result?.timeout) return ctx.reply(scriptTaskMessage(result, `${title}仍在运行`));
     if (result?.status !== 'success') {
-      if (!isScheduled || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
+      if (runMode !== 'all_authorized' || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
       return;
     }
     if (runMode === 'all_authorized') await this.callAfterRun(ctx, accounts, result, runMode, title, isScheduled);
     await this.checkCkAfterRun(ctx, accounts);
     if (runMode !== 'all_authorized' && typeof this.account.query === 'function') return this.replyAccountQueries(ctx, accounts, '运行后账号信息：', { separate: true });
     if (runMode === 'all_authorized') {
-      if (!isScheduled || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
+      if (ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
     } else {
       return ctx.reply(`✅执行完成：${title}`);
     }
