@@ -407,8 +407,14 @@ class AccountQLPlugin {
       env: typeof this.ql.env === 'function' ? this.ql.env(ctx, accounts) : (this.ql.env || {})
     });
     if (!wait) return ctx.reply(scriptTaskMessage(result, `${title}任务已提交`));
-    if (result?.already_running && result?.status === 'running') return ctx.reply(scriptTaskMessage(result, `${title}任务正在运行`));
-    if (result?.timeout) return ctx.reply(scriptTaskMessage(result, `${title}仍在运行`));
+    if (result?.already_running && result?.status === 'running') {
+      if (runMode !== 'all_authorized' || ctx.config("notify_scheduled") === "true") return ctx.reply(scriptTaskMessage(result, `${title}任务正在运行`));
+      return;
+    }
+    if (result?.timeout) {
+      if (runMode !== 'all_authorized' || ctx.config("notify_scheduled") === "true") return ctx.reply(scriptTaskMessage(result, `${title}仍在运行`));
+      return;
+    }
     if (result?.status !== 'success') {
       if (runMode !== 'all_authorized' || ctx.config("notify_scheduled") === "true") return ctx.reply(this.runSummaryMessage(result, accounts.length, Date.now() - startedAt));
       return;
