@@ -435,7 +435,7 @@ class AccountQLPlugin:
             return
         if result.get("status") != "success":
             elapsed_ms = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds() * 1000
-            if not is_scheduled or ctx.config("notify_scheduled") == "true":
+            if run_mode != "all_authorized" or ctx.config("notify_scheduled") == "true":
                 await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
             return
         if run_mode == "all_authorized":
@@ -445,7 +445,7 @@ class AccountQLPlugin:
             await self.reply_queries(ctx, accounts, separate=True)
         elif run_mode == "all_authorized":
             elapsed_ms = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds() * 1000
-            if not is_scheduled or ctx.config("notify_scheduled") == "true":
+            if ctx.config("notify_scheduled") == "true":
                 await ctx.reply(self.run_summary_message(result, len(accounts), elapsed_ms))
         else:
             await ctx.reply(f"✅执行完成：{title}")
