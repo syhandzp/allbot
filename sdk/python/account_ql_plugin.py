@@ -428,10 +428,12 @@ class AccountQLPlugin:
             await ctx.reply(script_task_message(result, f"{title}任务已提交"))
             return
         if result.get("already_running") and result.get("status") == "running":
-            await ctx.reply(script_task_message(result, f"{title}任务正在运行"))
+            if run_mode != "all_authorized" or ctx.config("notify_scheduled") == "true":
+                await ctx.reply(script_task_message(result, f"{title}任务正在运行"))
             return
         if result.get("timeout"):
-            await ctx.reply(script_task_message(result, f"{title}仍在运行"))
+            if run_mode != "all_authorized" or ctx.config("notify_scheduled") == "true":
+                await ctx.reply(script_task_message(result, f"{title}仍在运行"))
             return
         if result.get("status") != "success":
             elapsed_ms = (datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds() * 1000
