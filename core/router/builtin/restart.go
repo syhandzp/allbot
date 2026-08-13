@@ -3,6 +3,7 @@ package builtin
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"log"
 	"strings"
 	"time"
 
@@ -44,10 +45,7 @@ func replyRestart(ctx *Context) error {
 		StartedAt:  time.Now(),
 	}
 	if err := ctx.SendText("已收到重启指令，AllBot 正在重启"); err != nil {
-		if ctx.ReleaseRestart != nil {
-			ctx.ReleaseRestart()
-		}
-		return err
+		log.Printf("[WARN][重启] 确认消息发送失败，仍继续重启: %v", err)
 	}
 	go func() {
 		if err := handler(request); err != nil {
